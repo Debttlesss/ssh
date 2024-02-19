@@ -148,6 +148,23 @@ TEORÍA, SSH
     • Si añades una clave de paso, ya no es válido para procesos no interactivos.
     • SSH-Agent se carga en RAM, hay que volver a poner las contraseñas si se reinicia el equipo.
 
+
+AllowUsers nombredeusuario → permite que el usuario nombrado tenga acceso
+AllowGroups nombredegrupo → permite que el grupo nombrado tenga acceso
+
+Crear mensaje de bienvenida:
+Crear mensaje en archivo  /etc/motd, 
+En /etc/sshd_config,  ‘PrintMotd yes’.
+
+Rastrear inicio de sesión no autorizados en el servidor SSH, con la fecha e IP 
+- Activar registro de eventos: 
+/etc/ssh/sshd_config escribe: ‘LogLevel VERBOSE’ y ‘SyslogFacility LOCAL6’
+-Configurar el registro: 
+/etc/syslog.conf agregamos una línea que defina la ubicación del archivo que mantendrá los registros ‘local6.* /var/log/sshd.log ‘
+-Reiniciar el sistemas de registros y servicio ssh:
+‘sudo systemctl restart syslog ’ ‘sudo systemctl restart ssh’
+
+
 Generar una clave pública a partir de una privada
 ssh-keygen -y -f clave >> clave.pub
 
