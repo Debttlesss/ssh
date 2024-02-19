@@ -1,0 +1,188 @@
+#1.- INSTALAR OPENSSH
+	 apt install openssh-server
+
+-------------------------------------------------------------------
+
+2.-ESTABLECER CONEXIÓN POR SSH
+	 ssh administrador@192.168.10.1
+
+2.1.-COMPROBAR QUE LA HUELLA CORRESPONDE A LA C.PÚBLICA
+	 ssh-keygen -l -E sha256 -f fichero_con_clave_publica
+
+-------------------------------------------------------------------
+
+3.-CONFIGURACIÓN DE SERVIDOR (SERVER)
+sshd -T | less → ver opciones de configuración 
+
+3.1- FICHERO SSHD_CONFIG
+PermitRootLogin without-password → Acceso a usuario root mediante c. pública, no contraseña.
+PermitRootLogin yes → Permite acceso mediante contraseña al root
+PasswordAuthentication yes → Permite acceso mediante contraseña
+PasswordAuthentication no → No Permite acceso mediante contraseña, solo mediante la clave
+PasswordAuthentication yes → Habilita el Agent forwarding 
+Port 22  → Puerto por el cual se realiza la conexión (ssh -p <puerto> usuario@servidor)
+AddressFamily any|inet|inet6   → Protocolo de red que usa inet(IPv4), inet6 (IPv6) o any(ambos)
+ListenAddress IP →  Indica que IP puede conectarse
+logingracetime   →  Tiempo máximo de espera para que el usuario acceda con éxito
+maxauthtries    →  Número de veces máximo que puedes introducir una contraseña 
+maxsessions   →  Número máximo de sesiones en la misma conexión.
+loglevel  → Establece el nivel de detalle de los mensajes de registro (logs) 
+syslogfacility   → Específica donde se enviarán los mensajes de registro del servidor
+hostkey /fichero/  → Fichero que especifica la clave privada a utilizar por el servidor.
+
+-------------------------------------------------------------------
+
+4.-CONFIGURACIÓN DE CLIENTE (CLIENT)
+
+4.1- CONFIGURACIÓN GENERAL /ETC/SSH/SSH_CONFIG
+#HashKnownHosts yes  → Encripta la información del archivo known_hosts en hash
+#GSSAPIAuthentication yes  → Habilita la autenticación GSSAPI del cliente al servidor 
+#EscapeChar ~ → Cambias ~ por la tecla que quieras seleccionar para salir de la sesión ssh
+#GlobalKnownHostsFile /fichero/ → Tiene las claves host conocidas a nivel global en el sistema.
+#NumberOfPasswordPrompts → Número de intentos de acceso con contraseña
+#StrictHostKeyChecking yes → Rechaza conexión si la clave host del servidor no esta guardada
+#StrictHostKeyChecking ask→ Pregunta por conexión si la clave host del servidor no esta guardada
+#StrictHostKeyChecking no → Acepta conexión si la clave host del servidor no esta guardada
+#UserKnownHostsFile /fichero/ → Indica el fichero con las claves de host (suele ser known_hosts)
+
+4.2- CONFIGURACIÓN INDIVIDUAL
+Si queremos que ciertos parámetros se apliquen a ciertos usuarios por encima de la configuración general (sshd_config) debemos de escribirlo aquí: /home/USUARIO/.ssh/config
+#GSSAPIAuthentication no → Deshabilita la autenticación GSSAPI para el usuario implicado
+
+4.3- CONFIGURACIÓN MANUAL
+	 ssh -o "ForwardAgent yes" usuario@172.22.200.175
+
+
+-------------------------------------------------------------------
+
+
+5.- CREAR PAR DE CLAVES (CLIENTE)
+	 ssh-keygen -t ecdsa		(Para eliminar se usa:  ssh-keygen -R 192.168.100.1)
+	
+5.1.- VISUALIZAR LA CLAVE (CLIENTE)
+	 ls ./.ssh/
+
+5.2.- COPIAR CLAVE PÚBLICA DEL CLIENTE AL SERVIDOR (CLIENTE)
+	 ssh-copy-id -i ./.ssh/clave.pub mario@172.22.200.175
+
+
+-------------------------------------------------------------------
+
+
+6.- SSH-AGENT
+6.1.- COMPROBAR SI SSH-AGENT  SE ESTÁ EJECUTANDO
+	 env | grep SSH
+	 ps aux | grep ssh-agent
+
+6.2.- AGREGAR CLAVE PRIVADA A SSH-AGENT (CLIENTE)	
+	 ssh-add ~/.ssh/clave
+
+
+-------------------------------------------------------------------
+
+
+7.- FORWARDING
+
+7.1.-HABILITAR FORWARDINGS
+- En el servidor: /etc/ssh/sshd_config
+#AllowAgentForwarding yes 
+
+- En el cliente: /etc/ssh/ssh_config
+#ForwardAgent yes
+
+- Debes de conectarte mediante:
+	ssh -A usuario@servidor
+
+7.1.- X11 FORWARDING
+- En el servidor: /etc/ssh/sshd_config
+#X11Forwarding yes 
+
+- En el cliente: /etc/ssh/ssh_config
+#ForwardX11 yes
+
+- Debes de conectarte mediante:
+	ssh -X usuario@servidor → Para entornos más seguros
+	ssh -Y usuario@servidor → Para entornos menos seguros
+
+
+-------------------------------------------------------------------
+
+
+8.- TUNELES
+
+8.1.- LOCAL (DE LOCAL A SERVIDOR)
+	 ssh -f -L 1025:smtp.example.com:25 remoto.example.com -N
+
+
+8.2.- REMOTO (DE SERVIDOR A LOCAL)
+	 ssh -f -L 8080:localhost:80 remoto.example.com -N
+
+
+8.3.- DINÁMICO 
+	 ssh -D 8080 -f -C -q -N remote.example.com
+
+8.4.- COMPROBAR 
+	 ps aux | grep ssh
+
+
+-------------------------------------------------------------------
+-------------------------------------------------------------------
+-------------------------------------------------------------------
+
+PARÁMETROS DONDE TENGO DUDA –SERVIDOR O CLIENTE???
+passwordauthentication yes|no yes= con contraseña  no=por clave
+permitemptypasswords yes|no para no tener una contraseña vacia
+
+PrintLastLog yes|no detalles de la última vez que te logeaste
+PrintMotd yes|no escribir mensaje del dia
+Banner Ruta/a/fichero  Por si quieres que te aparezca 
+
+
+-------------------------------------------------------------------
+-------------------------------------------------------------------
+-------------------------------------------------------------------
+
+TEORÍA, SSH
+
+    • Cloud computing utiliza un mecanismo de clave pública/privada.
+    • Si añades una clave de paso, ya no es válido para procesos no interactivos.
+    • SSH-Agent se carga en RAM, hay que volver a poner las contraseñas si se reinicia el equipo.
+
+Generar una clave pública a partir de una privada
+ssh-keygen -y -f clave >> clave.pub
+
+Archivos de configuración de ssh
+
+SERVIDOR
+/etc/ssh/
+/sshd-config → configurar servidor
+/ssh-config  → configurar cliente
+
+/.ssh/authorized_keys → guarda las claves públicas de los clientes 
+
+
+CLIENTE
+./.ssh/known_hosts.old → guarda la huella digital del servidor (para logearse sin password)
+./.ssh/clave.pub → clave pública
+./.ssh/clave → clave privada
+
+
+Comandos
+
+- Transferir un fichero local a un equipo remoto:
+	 scp /home/usuario/.ssh/id_rsa.pub@192.168.10.1: /ruta/directorio/destino/
+	 scp [[user@]host1:]file1 [[user@]host2:]file2
+
+- Transferir un fichero desde un equipo remoto a mi equipo local
+	 scp root@172.22.200.175:/etc/shadow .
+
+- Transferir un fichero entre dos equipos remotos
+	 scp root@172.22.200.175:/etc/hosts root@172.22.200.176:/etc/hosts
+
+SSH-AGENT
+ssh-add L → Permite ver las claves cargadas
+ssh-add l → Permite ver la huella de las claves cargadas
+ssh-add d → Elimina clave ssh del agente
+ssh-add D → Elimina todas las claves ssh del agente
+
+ssh-keygen -R 192.168.100.1 → Elimina la C.pública guardada en el servidor (known_hosts)
